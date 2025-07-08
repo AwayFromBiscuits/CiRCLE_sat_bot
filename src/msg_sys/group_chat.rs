@@ -6,14 +6,17 @@ use crate::{
     config
 };
 use url;
+use once_cell::sync::Lazy;
 use crate::msg_sys::prelude::*;
 use crate::config::BotConfig;
+
+static ENDPOINT_URL: Lazy<String> = Lazy::new(|| {
+    format!("{}/send_group_msg", conf.url)
+});
 
 /// Sends a group message to the specified group ID using the provided API response.
 /// Send `ApiResponse.message` if no valid data is provided.
 pub async fn send_group_msg(
-    let endpoint_url = format!("{}/send_group_msg",conf.url);
-
     response: ApiResponse<Vec<String>>,
     group_id: u64,
 ) {
@@ -36,7 +39,7 @@ pub async fn send_group_msg(
 
     let client = reqwest::Client::new();
     let response = client
-        .post(endpoint_url)
+        .post(ENDPOINT_URL)
         .json(&msg_body)
         .send()
         .await;
@@ -103,8 +106,6 @@ async fn send_group_msg_with_photo(
     // tracing::info!("Sending group message with photo: {}", url_path);
 
     let msg_body = serde_json::json!({
-        let endpoint_url = format!("{}/send_group_msg",conf.url);
-        
         "group_id": group_id,
         "message": [
             {
@@ -118,7 +119,7 @@ async fn send_group_msg_with_photo(
 
     let client = reqwest::Client::new();
     let response = client
-        .post(endpoint_url)
+        .post(ENDPOINT_URL)
         .json(&msg_body)
         .send()
         .await;
