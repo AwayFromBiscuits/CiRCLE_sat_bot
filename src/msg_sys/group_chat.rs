@@ -7,8 +7,9 @@ use crate::{
 };
 use url;
 use crate::msg_sys::prelude::*;
+use crate::config::Config;
 
-const ENDPOINT_URL: &str = "http://localhost:3300/send_group_msg";
+let ENDPOINT_URL = format!("{}/send_group_msg",conf.url);
 
 /// Sends a group message to the specified group ID using the provided API response.
 /// Send `ApiResponse.message` if no valid data is provided.
@@ -181,12 +182,7 @@ async fn command_router(
                 if !config.bot_config.admin_id.contains(&payload.user_id) {
                     return; //testing
                 }
-
-                if !config.backend_config.special_group_id.as_ref().map_or(false, |ids| ids.contains(&payload.group_id)) {
-                    response.message = Some("这是只有CiRCLE成员才能使用的魔法喵~".to_string());
-                    send_group_msg(response, payload.group_id).await;
-                    return;
-                }
+                
                 if args.is_empty() {
                     response.message = Some("告诉我卫星名称喵！".to_string());
                 } else {
@@ -203,12 +199,7 @@ async fn command_router(
                 if !config.bot_config.admin_id.contains(&payload.user_id) {
                     return; //testing
                 }
-
-                if !config.backend_config.special_group_id.as_ref().map_or(false, |ids| ids.contains(&payload.group_id)) {
-                    response.message = Some("这是只有CiRCLE成员才能使用的魔法喵~".to_string());
-                    send_group_msg(response, payload.group_id).await;
-                    return;
-                }
+                
                 let query_response = crate::pass_query::all_pass_notify::get_all_sats_pass().await;
                 if query_response.is_empty() {
                     response.message = Some("没有找到卫星经过的信息呢...".to_string());
@@ -229,18 +220,6 @@ async fn command_router(
             "add" => {
                 if !config.bot_config.admin_id.contains(&payload.user_id) {
                     return; //testing
-                }
-
-                if !config.backend_config.special_group_id.as_ref().map_or(false, |ids| ids.contains(&payload.group_id)) {
-                    response.message = Some("这是只有CiRCLE成员才能使用的魔法喵~".to_string());
-                    send_group_msg(response, payload.group_id).await;
-                    return;
-                }
-
-                if !config.bot_config.admin_id.contains(&payload.user_id) {
-                    response.message = Some("这是只有Roselia成员才能使用的魔法喵~".to_string());
-                    send_group_msg(response, payload.group_id).await;
-                    return;
                 }
 
                 //此处应有函数
@@ -281,10 +260,6 @@ async fn command_router(
 async fn joke(payload: &MessageEvent, _config: &config::Config) {
     let group_id = payload.group_id;
     for elem in &payload.message {
-        if !config.bot_config.admin_id.contains(&payload.user_id) {
-            return; //testing
-        }
-
         if let MessageElement::Text { text } = elem {
             if text.starts_with("/") {
                 let text = query::sat_query::sat_name_normalize(text);
