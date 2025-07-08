@@ -166,6 +166,10 @@ async fn command_router(
 
         match command.as_str() {
             "query" | "q" => {
+                if !config.bot_config.admin_id.contains(&payload.user_id) {
+                    return; //testing
+                }
+
                 if args.is_empty() {
                     response.message = Some("告诉我卫星名称喵！".to_string());
                 }
@@ -174,6 +178,10 @@ async fn command_router(
                 }
             },
             "pass" | "p" => {
+                if !config.bot_config.admin_id.contains(&payload.user_id) {
+                    return; //testing
+                }
+
                 if !config.backend_config.special_group_id.as_ref().map_or(false, |ids| ids.contains(&payload.group_id)) {
                     response.message = Some("这是只有CiRCLE成员才能使用的魔法喵~".to_string());
                     send_group_msg(response, payload.group_id).await;
@@ -192,6 +200,10 @@ async fn command_router(
                 }
             },
             "all" | "a" => {
+                if !config.bot_config.admin_id.contains(&payload.user_id) {
+                    return; //testing
+                }
+
                 if !config.backend_config.special_group_id.as_ref().map_or(false, |ids| ids.contains(&payload.group_id)) {
                     response.message = Some("这是只有CiRCLE成员才能使用的魔法喵~".to_string());
                     send_group_msg(response, payload.group_id).await;
@@ -206,11 +218,19 @@ async fn command_router(
                 }
             },
             "sun" | "s" => {
+                if !config.bot_config.admin_id.contains(&payload.user_id) {
+                    return; //testing
+                }
+
                 send_group_msg_with_photo(payload.group_id).await;
                 return;
             },
             // 热重载函数，搭建中...
             "add" => {
+                if !config.bot_config.admin_id.contains(&payload.user_id) {
+                    return; //testing
+                }
+
                 if !config.backend_config.special_group_id.as_ref().map_or(false, |ids| ids.contains(&payload.group_id)) {
                     response.message = Some("这是只有CiRCLE成员才能使用的魔法喵~".to_string());
                     send_group_msg(response, payload.group_id).await;
@@ -227,10 +247,18 @@ async fn command_router(
                 response.message = Some("这条命令还在测试中呢，晚点再来试试吧！".to_string());
             },
             "help" | "h" => {
+                if !config.bot_config.admin_id.contains(&payload.user_id) {
+                    return; //testing
+                }
+
                 response.success = true;
                 response.data = config.backend_config.help.clone();
             },
             "about" => {
+                if !config.bot_config.admin_id.contains(&payload.user_id) {
+                    return; //testing
+                }
+
                 response.success = true;
                 response.data = config.backend_config.about.clone();
             }
@@ -239,6 +267,10 @@ async fn command_router(
             }
         }
     } else {
+        if !config.bot_config.admin_id.contains(&payload.user_id) {
+            return; //testing
+        }
+
         response.message = Some("干什么！哈！".to_string());
     }
 
@@ -249,6 +281,10 @@ async fn command_router(
 async fn joke(payload: &MessageEvent, _config: &config::Config) {
     let group_id = payload.group_id;
     for elem in &payload.message {
+        if !config.bot_config.admin_id.contains(&payload.user_id) {
+            return; //testing
+        }
+
         if let MessageElement::Text { text } = elem {
             if text.starts_with("/") {
                 let text = query::sat_query::sat_name_normalize(text);
