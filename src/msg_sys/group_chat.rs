@@ -9,11 +9,11 @@ use url;
 use crate::msg_sys::prelude::*;
 use crate::config::BotConfig;
 
-let endpoint_url = format!("{}/send_group_msg",conf.url);
-
 /// Sends a group message to the specified group ID using the provided API response.
 /// Send `ApiResponse.message` if no valid data is provided.
 pub async fn send_group_msg(
+    let endpoint_url = format!("{}/send_group_msg",conf.url);
+
     response: ApiResponse<Vec<String>>,
     group_id: u64,
 ) {
@@ -103,6 +103,8 @@ async fn send_group_msg_with_photo(
     // tracing::info!("Sending group message with photo: {}", url_path);
 
     let msg_body = serde_json::json!({
+        let endpoint_url = format!("{}/send_group_msg",conf.url);
+        
         "group_id": group_id,
         "message": [
             {
