@@ -8,11 +8,8 @@ use crate::{
 use url;
 use once_cell::sync::Lazy;
 use crate::msg_sys::prelude::*;
-use crate::config::BotConfig;
 
-static ENDPOINT_URL: Lazy<String> = Lazy::new(|| {
-    format!("{}/send_group_msg", conf.url)
-});
+const ENDPOINT_URL: &str = "http://localhost:3000/send_group_msg";
 
 /// Sends a group message to the specified group ID using the provided API response.
 /// Send `ApiResponse.message` if no valid data is provided.
