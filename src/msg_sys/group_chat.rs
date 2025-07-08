@@ -7,9 +7,9 @@ use crate::{
 };
 use url;
 use crate::msg_sys::prelude::*;
-use crate::config::Config;
+use crate::config::BotConfig;
 
-let ENDPOINT_URL = format!("{}/send_group_msg",conf.url);
+let endpoint_url = format!("{}/send_group_msg",conf.url);
 
 /// Sends a group message to the specified group ID using the provided API response.
 /// Send `ApiResponse.message` if no valid data is provided.
@@ -36,7 +36,7 @@ pub async fn send_group_msg(
 
     let client = reqwest::Client::new();
     let response = client
-        .post(ENDPOINT_URL)
+        .post(endpoint_url)
         .json(&msg_body)
         .send()
         .await;
@@ -116,7 +116,7 @@ async fn send_group_msg_with_photo(
 
     let client = reqwest::Client::new();
     let response = client
-        .post(ENDPOINT_URL)
+        .post(endpoint_url)
         .json(&msg_body)
         .send()
         .await;
