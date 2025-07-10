@@ -2,7 +2,7 @@ use chrono::{Duration, Local, TimeZone};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fs, path::Path};
-use super::satellites::SATELLITE_LIST;
+use super::satellites::{SATELLITE_LIST, get_track_sat_list};
 use crate::config::Config;
 use crate::query::sat_query::sat_name_normalize;
 
@@ -31,14 +31,17 @@ pub async fn update_sat_pass_cache(config: &Config) -> anyhow::Result<()> {
     let mut cache: HashMap<String, SatPassData> = HashMap::new();
     let conf = config.pass_api_config.clone();
 
-    for (name, sat_info) in SATELLITE_LIST.iter() {
+    let track_sat_list = {
+        let sat_list = SATELLITE_LIST.read().unwrap();
+        get_track_sat_list(&sat_list)
+    };
+
+    for (name, sat_info) in track_sat_list.iter() {
         let url = format!(
-            // "https://api.n2yo.com/rest/v1/satellite/radiopasses/{}/{}/{}/{}/{}/{}/&apiKey={}", if dont want to build api framework yourself
             "{}/{}/{}/{}/{}/{}/{}&apikey={}",
             conf.host, sat_info.id, conf.lat, conf.lon, conf.alt, conf.day, conf.min_elevation, conf.api_key
         );
 
-        // API request
         match client.get(&url).send().await {
             Ok(response) => match response.text().await {
                 Ok(body) => match serde_json::from_str::<serde_json::Value>(&body) {
@@ -53,13 +56,13 @@ pub async fn update_sat_pass_cache(config: &Config) -> anyhow::Result<()> {
                                 let start = p["startUTC"].as_i64().unwrap_or(0);
                                 let end = p["endUTC"].as_i64().unwrap_or(0);
                                 let duration = if end > start {(end - start) as u64} else {0};
-                                
+
                                 PassInfo {
-                                startUTC: start,
-                                maxEl: p["maxEl"].as_f64().unwrap_or(0.0),
-                                maxUTC: p["maxUTC"].as_i64().unwrap_or(0),
-                                endUTC: end,
-                                duration,
+                                    startUTC: start,
+                                    maxEl: p["maxEl"].as_f64().unwrap_or(0.0),
+                                    maxUTC: p["maxUTC"].as_i64().unwrap_or(0),
+                                    endUTC: end,
+                                    duration,
                                 }
                             })
                             .collect();
@@ -91,7 +94,6 @@ pub async fn update_sat_pass_cache(config: &Config) -> anyhow::Result<()> {
         }
     }
 
-    // API data caching and logging
     let serialized = serde_json::to_string_pretty(&cache)?;
     fs::write(CACHE_FILE, serialized)?;
 
@@ -102,7 +104,6 @@ pub async fn update_sat_pass_cache(config: &Config) -> anyhow::Result<()> {
     Ok(())
 }
 
-// Cache out of date adjustment
 fn _need_update_cache() -> bool {
     if !Path::new(CACHE_FILE).exists() {
         return true;
@@ -131,10 +132,9 @@ fn _need_update_cache() -> bool {
     let latest = data.values().map(|d| d.last_update).max().unwrap_or(0);
     let now = chrono::Utc::now().timestamp();
 
-    return now - latest > 60 * 60 * 24 * 2; // 2 days in seconds
+    return now - latest > 60 * 60 * 24 * 2;
 }
 
-// Query satellite pass data
 pub fn query_satellite(name: Option<String>) -> Vec<String> {
     let content = fs::read_to_string(CACHE_FILE).unwrap_or_default();
     let data: HashMap<String, SatPassData> = serde_json::from_str(&content).unwrap_or_default();
@@ -176,17 +176,17 @@ pub fn query_satellite(name: Option<String>) -> Vec<String> {
     result
 }
 
-fn find_alias_match(query: &str) -> Option<String> {
-    use super::satellites::SATELLITE_ALIASES;
-    for (key, aliases) in SATELLITE_ALIASES.iter() {
-        // if key.eq_ignore_ascii_case(query) || aliases.iter().any(|a| a.eq_ignore_ascii_case(query)) {
-        //     return Some(key.clone());
-        // }
-        let norm_query = sat_name_normalize(query);
-        if sat_name_normalize(key) == norm_query||
-           aliases.iter().any(|a| sat_name_normalize(&a) == norm_query) {
-            return Some(key.clone());
+pub fn find_alias_match(query: &str) -> Option<String> {
+    use crate::pass_query::satellites::get_satellite_aliases;
+
+    let norm_query = sat_name_normalize(query);
+    let alias_map = get_satellite_aliases();
+
+    for (key, aliases) in alias_map.iter() {
+        if sat_name_normalize(key) == norm_query || aliases.iter().any(|a| a == &norm_query || a == query) {
+            return Some(key.to_string());
         }
     }
+
     None
 }

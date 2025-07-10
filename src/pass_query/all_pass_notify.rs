@@ -1,6 +1,7 @@
 use chrono::{Utc, TimeZone, Duration, Timelike};
-use std::{collections::HashMap};
+use std::collections::HashMap;
 use super::sat_pass_predict::SatPassData;
+use super::satellites::{SATELLITE_LIST, get_notify_id_list};
 use tokio::fs;
 
 const CACHE_FILE: &str = "sat_pass_cache.json";
@@ -22,12 +23,31 @@ pub async fn get_all_sats_pass() -> Vec<String> {
         }
     };
 
+    let sat_map = SATELLITE_LIST.read().unwrap();
+    let notify_ids = get_notify_id_list(&sat_map);
+
     let now = Utc::now().timestamp();
 
     let mut active_passes = Vec::new();
     let mut upcoming_passes: Vec<(i64, String)> = Vec::new();
+    let mut no_pass_info = Vec::new();
+    let mut no_cache_info = Vec::new(); 
+
+    let mut found_ids = std::collections::HashSet::new();
 
     for sat in data.values() {
+        if !notify_ids.contains(&sat.satid) {
+            continue;
+        }
+    
+        if sat.passes.is_empty() {
+            no_pass_info.push(format!("{} | 无过境信息...", sat.satname));
+            found_ids.insert(sat.satid);
+            continue;
+        }
+    
+        found_ids.insert(sat.satid);
+    
         if let Some(p) = sat
             .passes
             .iter()
@@ -63,7 +83,16 @@ pub async fn get_all_sats_pass() -> Vec<String> {
             ));
         }
     }
-    
+
+    for (name, info) in sat_map.iter() {
+        if info.notify {
+            if let Some(id) = info.id {
+                if !found_ids.contains(&id) {
+                    no_cache_info.push(format!("{} | 未缓存信息...", name));
+                }
+            }
+        }
+    }
 
     upcoming_passes.sort_by_key(|(countdown, _)| *countdown);
 
@@ -71,8 +100,10 @@ pub async fn get_all_sats_pass() -> Vec<String> {
         Vec::new()
     } else {
         let mut result = vec!["[预测]".to_string()];
-        result.extend(active_passes.into_iter());
+        result.extend(active_passes);
         result.extend(upcoming_passes.into_iter().map(|(_, msg)| msg));
+        result.extend(no_pass_info);
+        result.extend(no_cache_info);
         result
     }
 }
