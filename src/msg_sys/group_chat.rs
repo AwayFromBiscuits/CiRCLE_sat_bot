@@ -503,6 +503,10 @@ async fn text_router(text: &String, payload: &MessageEvent, config: &config::Con
             joke(&payload, config).await;
             return;
         }
+        else {
+            command_router(payload, config).await;
+            return;
+        }
     }
 
     if text.contains("circle") ||
@@ -510,11 +514,6 @@ async fn text_router(text: &String, payload: &MessageEvent, config: &config::Con
         text.contains("rinko") ||
         text.contains("roselia") {
         joke(&payload, config).await;
-        return;
-    }
-
-    if text.starts_with("/q") || text.starts_with("/h") || text.starts_with("/p") || text.starts_with("/a") || text.starts_with("/s") {
-        command_router(&payload, config).await;
         return;
     }
 }
